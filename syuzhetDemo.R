@@ -3,6 +3,8 @@
 ## last modified 2.20.15
 ## adapted from syuzhet vignette: https://github.com/mjockers/syuzhet/blob/master/inst/doc/syuzhet-vignette.R
 
+setwd("~/Sites/Shiny/syuzhet/")
+
 ## install and load package — available via devtools
 ## install.packages("devtools")
 
@@ -74,6 +76,11 @@ moby_d_sent_nrc2 <- get_nrc_sentiment(moby_d)
 moby_d_angry <- which(moby_d_sent_nrc2$anger > 0)
 moby_d[moby_d_angry]
 
+## sentiment anaylsis with twitter data
+
+load("~/Sites/Shiny/twitCred.Rdata")
+library(twitteR)
+registerTwitterOAuth(twitCred)
 
 
 ## end syuzhet demo
