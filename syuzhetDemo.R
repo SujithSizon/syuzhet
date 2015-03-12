@@ -1,6 +1,6 @@
 ## sentiment analysis with syuzhet
 ## vp nagraj
-## last modified 2.20.15
+## last modified 3.11.15
 ## adapted from syuzhet vignette: https://github.com/mjockers/syuzhet/blob/master/inst/doc/syuzhet-vignette.R
 
 setwd("~/Sites/Shiny/syuzhet/")
@@ -17,8 +17,12 @@ ls("package:syuzhet")
 ## read the vignette
 vignette("syuzhet-vignette")
 
+## PART I — Visualizing Narrative Structure
+
 ## load data
-path_to_text <- "http://www.gutenberg.org/cache/epub/2701/pg2701.txt"           # note: only works with http
+path_to_text <- "http://www.gutenberg.org/cache/epub/2701/pg2701.txt"           
+
+## note: only works with http
 
 moby_d <- get_text_as_string(path_to_text)
 
@@ -28,13 +32,8 @@ moby_d <- get_sentences(moby_d)
 ## get sentiment vector — bing method
 moby_d_sent_bing <- get_sentiment(moby_d, method="bing")
 
-## get mean of sentiment vectors over the narrative timeline as divided up into 100 even parts
-moby_d_sent_bing_vals <- get_percentage_values(moby_d_sent_bing)
+moby_d_sent_bing
 
-## transform with fourier transformtion over percentage of the narrative
-moby_d_sent_bing_ft <- get_transformed_values(moby_d_sent_bing)
-
-## use ggplot2 intstead??????
 plot(
         moby_d_sent_bing, 
         type="l", 
@@ -43,6 +42,12 @@ plot(
         ylab= "Emotional Valence",
         col="red"
 )
+
+
+## get mean of sentiment vectors over the narrative timeline as divided up into 100 even parts
+moby_d_sent_bing_vals <- get_percentage_values(moby_d_sent_bing)
+
+moby_d_sent_bing_vals
 
 plot(
         moby_d_sent_bing_vals, 
@@ -53,7 +58,10 @@ plot(
         col="red"
 )
 
-lines(percent_vals)
+## transform with fourier transformtion over percentage of the narrative
+moby_d_sent_bing_ft <- get_transformed_values(moby_d_sent_bing)
+
+moby_d_sent_bing_ft
 
 plot(
         moby_d_sent_bing_ft, 
@@ -67,185 +75,124 @@ plot(
 ## get sentiment vector — a finn method
 moby_d_sent_afinn <- get_sentiment(moby_d, method="afinn")
 
+moby_d_sent_afinn
+
 ## get sentiment vector — nrc method
 moby_d_sent_nrc <- get_sentiment(moby_d, method="nrc")
 
+moby_d_sent_nrc
+
+## get sentiment with get_nrc_sentiment function
 
 moby_d_sent_nrc2 <- get_nrc_sentiment(moby_d)
 
-moby_d_angry <- which(moby_d_sent_nrc2$anger > 0)
-moby_d[moby_d_angry]
+class(moby_d_sent_nrc2)
 
-## sentiment anaylsis with twitter data
+head(moby_d_sent_nrc2)
 
-load("~/Sites/Shiny/twitCred.Rdata")
+moby_d_anticipation <- which(moby_d_sent_nrc2$anticipation > 0)
+moby_d[moby_d_anticipation]
+
+## PART II — Sentiment Analysis (Twitter Data)
+
+load("~/Sites/Shiny/tweets.Rda")
 library(twitteR)
-registerTwitterOAuth(twitCred)
 
+## tweets come in as a list object — maybe there's a twitteR function to handle that
 
-## end syuzhet demo
+ls("package:twitteR")
 
+## ... and there is — twListToDF()
 
+obama_tweets_df <- twListToDF(obama_tweets)
 
+## also need to clean up invalid characters
 
+obama_tweets_df$text <- gsub("[^0-9A-Za-z///' ]", " ", obama_tweets_df$text)
 
+## now apply the get_nrc_sentiment function to the text variable
 
-## ------------------------------------------------------------------------
-library(syuzhet)
-my_example_text <- "I begin this story with a neutral statement.  
-Basically this is a very silly test.  
-You are testing the Syuzhet package using short, inane sentences.  
-I am actually very happy today. 
-I have finally finished writing this package.  
-Tomorrow I will be very sad. 
-I won't have anything left to do. 
-I might get angry and decide to do something horrible.  
-I might destroy the entire package and start from scratch.  
-Then again, I might find it satisfying to have completed my first R package. 
-Honestly this use of the Fourier transformation is really quite elegant.  
-You might even say it's beautiful!"
-s_v <- get_sentences(my_example_text)
+obama_tweets_nrc <- get_nrc_sentiment(obama_tweets_df$text)
 
-## ------------------------------------------------------------------------
-class(s_v)
-str(s_v)
-head(s_v)
+summary(obama_tweets_nrc)
 
-## ----, eval = FALSE------------------------------------------------------
-path_to_a_text_file <- "http://www.gutenberg.org/cache/epub/4217/pg4217.txt"
-#  joyces_portrait <- get_text_as_string(path_to_a_text_file)
-#  poa_v <- get_sentences(joyces_portrait)
+library(tidyr)
+library(dplyr)
 
-## ----, echo = FALSE------------------------------------------------------
-# Loading locally so I don't keep hitting www.gutenberg.org while testing (and get banned)
-#path_to_a_text_file <- system.file("extdata", "portrait.txt",
-package = "syuzhet")
-joyces_portrait <- get_text_as_string(path_to_a_text_file)
-poa_v <- get_sentences(joyces_portrait)
+tidy_obama_tweets <- 
+        obama_tweets_nrc %>%
+#         select(1:8) %>%
+        gather() %>%
+        group_by(Sentiment=key) %>%
+        summarise(Total=sum(value))
 
-## ------------------------------------------------------------------------
-sentiment_vector <- get_sentiment(poa_v, method="bing")
+summary(tidy_obama_tweets)
 
-## ------------------------------------------------------------------------
-sentiment_vector
+p_obama <- ggplot(tidy_obama_tweets, aes(Sentiment,Total)) +
+        geom_bar(stat="identity") +
+        ylab("Total Weight") +
+        ggtitle("Obama Tweet Sentiment (3/11/15)")
 
-## ------------------------------------------------------------------------
-afinn_vector <- get_sentiment(poa_v, method="afinn")
-afinn_vector
+p_obama
 
-nrc_vector <- get_sentiment(poa_v, method="nrc")
-nrc_vector
+## get sentiment with bing
 
-tagger_path <- "/Applications/stanford-corenlp-full-2014-01-04"
-stanford_vector <- get_sentiment(s_v, method="stanford", tagger_path)
-stanford_vector
+obama_sent_bing <- get_sentiment(obama_tweets_df$text, method="bing")
 
-## ------------------------------------------------------------------------
-sum(sentiment_vector)
-
-## ------------------------------------------------------------------------
-mean(sentiment_vector)
-
-## ------------------------------------------------------------------------
-summary(sentiment_vector)
-
-## ----, fig.width = 6-----------------------------------------------------
 plot(
-        sentiment_vector, 
+        obama_tweets_df$created,
+        obama_sent_bing,
         type="l", 
-        main="Example Plot Trajectory", 
-        xlab = "Narrative Time", 
-        ylab= "Emotional Valence"
-)
-lines(afinn_vector, col = "blue", lwd=".5")
-lines(sentiment_vector, pch="")
-## ----, fig.width = 6-----------------------------------------------------
-poa_sent <- get_sentiment(poa_v, method="bing")
-plot(
-        poa_sent, 
-        type="h", 
-        main="Example Plot Trajectory", 
-        xlab = "Narrative Time", 
-        ylab= "Emotional Valence"
-)
-
-## ----, echo=FALSE, fig.width = 6-----------------------------------------
-plot(
-        sentiment_vector, 
-        type = "l", 
-        main = "Example Plot Trajectory", 
-        xlab = "Narrative Time", 
-        ylab = "Emotional Valence"
-)
-
-lines(
-        get_transformed_values(
-                sentiment_vector, 
-                low_pass_size = 3, 
-                x_reverse_len = 12, 
-                scale_range = TRUE
-        ), 
-        col = "red", 
-        lwd = 2
-)
-
-## ----, fig.width = 6-----------------------------------------------------
-percent_vals <- get_percentage_values(poa_sent)
-plot(
-        percent_vals, 
-        type="l", 
-        main="Joyce's Portrait Using Percentage-Based Means", 
-        xlab = "Narrative Time", 
-        ylab= "Emotional Valence", 
+        main="Sentiment Over Time", 
+        xlab = "Time", 
+        ylab= "Emotional Valence",
         col="red"
 )
 
-## ----, fig.width = 6-----------------------------------------------------
-ft_values <- get_transformed_values(
-        poa_sent, 
-        low_pass_size = 3, 
-        x_reverse_len = 100,
-        scale_vals = TRUE,
-        scale_range = FALSE
-)
+obama_sent_bing_ft <- get_transformed_values(obama_sent_bing)
+
 plot(
-        ft_values, 
-        type ="h", 
-        main ="Joyce's Portrait using Transformed Values", 
-        xlab = "Narrative Time", 
-        ylab = "Emotional Valence", 
-        col = "red"
+        obama_sent_bing_ft, 
+        type="l", 
+        main="Sentiment Over Time", 
+        xlab = "Time (Percentage)", 
+        ylab= "Emotional Valence",
+        col="red"
 )
 
-## ------------------------------------------------------------------------
-nrc_data <- get_nrc_sentiment(poa_v)
 
-## ------------------------------------------------------------------------
-angry_items <- which(nrc_data$anger > 0)
-poa_v[angry_items]
+## PART III — Sentiment Analysis (Survey Data)
 
-## ------------------------------------------------------------------------
-joy_items <- which(nrc_data$joy > 0)
-poa_v[joy_items]
+survey_results <- read.csv("~/Sites/Shiny/survey_responses.csv")
 
-## ----, results='asis'----------------------------------------------------
-pander::pandoc.table(nrc_data[, 1:8])
+survey_results$Response.Text <- as.character(survey_results$Response.Text)
 
-## ----, results='asis'----------------------------------------------------
-pander::pandoc.table(nrc_data[, 9:10])
+survey_results$Response.Date <- as.character(survey_results$Response.Date)
+survey_results$Response.Date <- as.Date(survey_results$Response.Date, format="%B %d %Y")
 
-## ------------------------------------------------------------------------
-valence <- (nrc_data[, 9]*-1) + nrc_data[, 10]
-valence
+survey_nrc <- get_nrc_sentiment(survey_results$Response.Text)
 
-## ----, fig.width=6-------------------------------------------------------
-barplot(
-        sort(colSums(prop.table(nrc_data[, 1:8]))), 
-        horiz = TRUE, 
-        cex.names = 0.7, 
-        las = 1, 
-        main = "Emotions in Sample text", xlab="Percentage"
-)
+summary(survey_nrc)
 
+library(tidyr)
+library(dplyr)
+
+tidy_survey <- 
+        survey_nrc %>%
+#         select(1:8) %>%
+        gather() %>%
+        group_by(Sentiment=key) %>%
+        summarise(Total=sum(value))
+
+summary(tidy_survey)
+
+p_survey <- ggplot(tidy_survey, aes(Sentiment,Total)) +
+        geom_bar(stat="identity") +
+        ylab("Total Weight") +
+        ggtitle("Survey Sentiment")
+
+p_survey
+
+## end syuzhet demo
 
 
