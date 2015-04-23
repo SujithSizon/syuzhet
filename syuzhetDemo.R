@@ -2,8 +2,6 @@
 ## vp nagraj
 ## last modified 4.21.15
 
-setwd("~/Sites/Shiny/syuzhet/")
-
 ## install and load package — available via devtools
 ## install.packages("devtools")
 
@@ -53,7 +51,6 @@ plot(
         col="red"
 )
 
-
 ## get mean of sentiment vectors over the narrative timeline as divided up into 100 even parts
 moby_d_sent_afinn_vals <- get_percentage_values(moby_d_sent_afinn)
 
@@ -91,22 +88,11 @@ rm(list= ls())
 
 ## PART II — Sentiment Analysis (Twitter Data)
 
-load("~/Sites/Shiny/tweets.Rda")
-load("~/Sites/Shiny/tweets2.Rda")
-library(twitteR)
+## load tweets from csv files 
+## note: these were harvested using the twitteR package and converted from lists to dataframes
 
-## tweets come in as a list object — maybe there's a twitteR function to handle that
-
-ls("package:twitteR")
-
-## ... and there is — twListToDF()
-
-obama_tweets_df <- twListToDF(obama_tweets)
-obama_tweets_df2 <- twListToDF(obama_tweets2)
-
-## get rid of the list of tweets to speed things up
-
-rm(obama_tweets,obama_tweets2)
+obama_tweets_df <- read.csv("obama_tweets_march.csv")
+obama_tweets_df2 <- read.csv("obama_tweets_april.csv")
 
 ## also need to clean up invalid characters with regex ... don't ask
 
@@ -154,7 +140,7 @@ tidy_obama_tweets_polarity <-
         select(9:10) %>%
         gather() %>%
         group_by(Sentiment=key) %>%
-        summarise(Total=sum(value))
+        summarise(Total=sum(abs(value))
 
 tidy_obama_tweets_polarity2 <- 
         obama_tweets_nrc2 %>%
@@ -175,7 +161,9 @@ p_obama2
 
 ## PART III — Sentiment Analysis (Survey Data)
 
-survey_results <- read.csv("~/Sites/Shiny/survey_responses.csv")
+## read in library class survey data
+
+survey_results <- read.csv("survey_responses.csv")
 
 survey_results$Response.Text <- as.character(survey_results$Response.Text)
 
