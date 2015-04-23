@@ -140,7 +140,7 @@ tidy_obama_tweets_polarity <-
         select(9:10) %>%
         gather() %>%
         group_by(Sentiment=key) %>%
-        summarise(Total=sum(abs(value))
+        summarise(Total=sum(value))
 
 tidy_obama_tweets_polarity2 <- 
         obama_tweets_nrc2 %>%
